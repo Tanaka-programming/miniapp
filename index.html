@@ -1,125 +1,32 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <style type="text/css">
-      html, body {
-        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f0f0f0; /* 背景色を少し変更 */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        text-align: center;
-      }
-      .container {
-        padding: 2rem 1rem;
-      }
-      .title {
-        font-size: 2rem; /* 少し調整 */
-        line-height: 1.2;
-        margin-bottom: 2rem; /* ボタンとの間隔を調整 */
-        color: #333;
-      }
-      .stamp-button {
-        background-color: #00B900; /* LINEグリーン */
-        color: white;
-        border: none;
-        padding: 1rem 2rem; /* パディングを調整 */
-        font-size: 1.2rem; /* 文字サイズを調整 */
-        font-weight: bold;
-        cursor: pointer;
-        border-radius: 8px; /* 角丸を少し調整 */
-        transition: background-color 0.3s, transform 0.1s;
-        display: inline-block;
-        text-decoration: none; /* aタグにした場合の考慮（今回はbutton） */
-      }
-      .stamp-button:hover {
-        background-color: #009300; /* 少し濃いグリーン */
-      }
-      .stamp-button:active {
-        transform: scale(0.98); /* クリック時のアクション */
-      }
-      .liff-error {
-        color: red;
-        margin-top: 1rem;
-      }
-      @media screen and (max-width: 600px) {
-        html {
-          font-size: 14px;
-        }
-        .title {
-          font-size: 1.8rem;
-        }
-        .stamp-button {
-          padding: 0.8rem 1.5rem;
-          font-size: 1rem;
-        }
-      }
-    </style>
-    <title>スタンプGETデモ</title>
-    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約詳細</title>
+</head>
+<body>
+    <h1>予約内容</h1>
+    <p>予約ID: <span id="reservationIdDisplay">RSV001</span></p>
+    <button id="shareReservationButton" data-reservation-id="RSV001">
+        この予約状況をLINEで共有する
+    </button>
+
     <script>
-      async function initializeLiff(myLiffId) {
-        try {
-          await liff.init({ liffId: myLiffId });
-          console.log('LIFF initialized');
-          // LIFFが初期化できたらボタンを有効化するなどのUI制御も可能
-          document.getElementById('downloadStampButton').disabled = false;
-        } catch (err) {
-          console.error('LIFF initialization failed', err);
-          document.getElementById('liffErrorMessage').textContent = 'LIFFの初期化に失敗しました。LINEアプリ内で開いてください。';
-        }
-      }
+        document.getElementById('shareReservationButton').addEventListener('click', function() {
+            const reservationId = this.dataset.reservationId;
+            // ★★★★★ ご自身のLIFF IDに置き換えてください ★★★★★
+            const liffId = '2006882853-9aNwJ63V';
+            const liffUrl = `https://liff.line.me/${liffId}?reservationId=${encodeURIComponent(reservationId)}`;
 
-      function openStampPage() {
-        const stampUrl = 'https://line.me/S/sticker/34104/?lang=ja&utm_source=gnsh_stickerDetail'; //遷移先のスタンプURL
-
-        if (liff.isInClient()) {
-          // LINEアプリ内の場合
-          liff.openWindow({
-            url: stampUrl,
-            external: false // LINEプラットフォーム内のURLなのでfalseが適切
-          });
-        } else {
-          // LINEアプリ外の場合 (PCブラウザなどでのテスト用)
-          console.log('LINEアプリ外のため、直接リダイレクトします。');
-          window.open(stampUrl, '_blank'); // 新しいタブで開く
-        }
-      }
-
-      document.addEventListener('DOMContentLoaded', function () {
-        // ご自身のLIFF IDに置き換えてください
-        // LIFF IDが設定されていない場合は、機能が限定される旨を伝えるか、ボタンを非表示にするなどの対応も考えられます。
-        const myLiffId = '2006882853-9aNwJ63V'; // ★★★★★ ここにあなたのLIFF IDを入力してください ★★★★★
-        if (!myLiffId) {
-          console.warn('LIFF IDが設定されていません。');
-          document.getElementById('liffErrorMessage').textContent = 'LIFF IDが設定されていません。';
-          // LIFF IDがない場合はボタンを押せないようにする
-          document.getElementById('downloadStampButton').disabled = true;
-          return;
-        }
-        initializeLiff(myLiffId);
-
-        document.getElementById('downloadStampButton').addEventListener('click', function () {
-          openStampPage();
+            // LIFF URLにリダイレクト
+            window.location.href = liffUrl;
         });
-      });
+
+        // 動的に予約IDを設定する場合の例
+        // const dynamicReservationId = "RSV002"; // サーバーから取得するなど
+        // document.getElementById('reservationIdDisplay').textContent = dynamicReservationId;
+        // document.getElementById('shareReservationButton').dataset.reservationId = dynamicReservationId;
     </script>
-  </head>
-  <body>
-    <div class="container">
-      <h1 class="title">
-        限定スタンプをGETしよう！
-      </h1>
-      <button type="button" id="downloadStampButton" class="stamp-button" disabled>
-        スタンプをダウンロード
-      </button>
-      <p id="liffErrorMessage" class="liff-error"></p>
-    </div>
-  </body>
+</body>
 </html>

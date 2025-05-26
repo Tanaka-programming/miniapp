@@ -1,32 +1,114 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
+    <title>LINE遷移デモ</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>予約詳細</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px; 
+            text-align: center; 
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: 40px auto;
+        }
+        h1 {
+            color: #00B900; /* LINE Green */
+        }
+        p {
+            font-size: 1em;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        button { 
+            background-color: #00C300; /* LINE Green */
+            color: white;
+            border: none;
+            padding: 12px 25px; 
+            font-size: 1.1em; 
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #009A00; /* Darker LINE Green */
+        }
+        .note {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>予約内容</h1>
-    <p>予約ID: <span id="reservationIdDisplay">RSV001</span></p>
-    <button id="shareReservationButton" data-reservation-id="RSV001">
-        この予約状況をLINEで共有する
-    </button>
+    <div class="container">
+        <h1>LINEアプリ遷移デモ</h1>
+        <p>このボタンをクリックすると、LINEアプリが起動し、<br>あらかじめ指定されたLIFFアプリが開きます。</p>
+        
+        <button id="openLiffInLineAppButton">LINEでLIFFアプリを開く</button>
+
+        <div class="note">
+            <p><strong>【重要】</strong> このデモを正しく動作させるには、以下のJavaScriptコード内の <code>YOUR_LIFF_ID_HERE</code> を、あなたがLINE Developersコンソールで作成した有効なLIFF IDに置き換える必要があります。</p>
+            <p>LINEアプリがインストールされていないデバイスでは、このボタンは期待通りに動作しない場合があります。</p>
+        </div>
+    </div>
 
     <script>
-        document.getElementById('shareReservationButton').addEventListener('click', function() {
-            const reservationId = this.dataset.reservationId;
-            // ★★★★★ ご自身のLIFF IDに置き換えてください ★★★★★
-            const liffId = '2006882853-9aNwJ63V';
-            const liffUrl = `https://liff.line.me/${liffId}?reservationId=${encodeURIComponent(reservationId)}`;
+        document.addEventListener('DOMContentLoaded', function() {
+            const openLiffButton = document.getElementById('openLiffInLineAppButton');
 
-            // LIFF URLにリダイレクト
-            window.location.href = liffUrl;
+            if (openLiffButton) {
+                openLiffButton.addEventListener('click', function() {
+                    // ==================================================================
+                    // ▼▼▼【重要】ご自身のLIFF IDに置き換えてください ▼▼▼
+                    // 例: "1234567890-Abcdefgh" (LINE Developersコンソールで取得)
+                    const liffId = "2006882853-9aNwJ63V"; 
+                    // ▲▲▲【重要】ご自身のLIFF IDに置き換えてください ▲▲▲
+                    // ==================================================================
+
+                    // LIFF IDが設定されていない場合は、ユーザーに通知
+                    if (liffId === "2006882853-9aNwJ63V" || !liffId.trim()) {
+                        alert("デモを試す前に、HTMLファイル内のJavaScriptコードにある 'liffId' の値を、ご自身の有効なLIFF IDに置き換えてください。");
+                        console.warn("LIFF IDが設定されていません。'2006882853-9aNwJ63V' を実際のIDに置き換えてください。");
+                        return;
+                    }
+
+                    // (オプション) LINEアプリ内ブラウザで開くLIFFアプリに引き継ぎたい情報があれば、
+                    // クエリパラメータとして準備します。
+                    const params = new URLSearchParams();
+                    params.set("source", "external_demo_button");
+                    params.set("timestamp", new Date().getTime().toString());
+
+                    // LINE URLスキームを組み立てます
+                    // 基本形: line://liff/{liffId}
+                    // クエリパラメータを付与する場合: line://liff/{liffId}?{クエリ文字列}
+                    let lineUrl = `line://liff/${liffId}`;
+                    
+                    if (params.toString()) {
+                        lineUrl += `?${params.toString()}`;
+                    }
+                    
+                    console.log("生成されたLINE URLスキーム:", lineUrl);
+                    
+                    // 組み立てたLINE URLスキームに現在のウィンドウを遷移させます。
+                    // これにより、OSはLINEアプリの起動を試みます。
+                    window.location.href = lineUrl;
+                });
+            } else {
+                console.error("ボタン要素 (#openLiffInLineAppButton) が見つかりません。HTMLのid属性を確認してください。");
+            }
         });
-
-        // 動的に予約IDを設定する場合の例
-        // const dynamicReservationId = "RSV002"; // サーバーから取得するなど
-        // document.getElementById('reservationIdDisplay').textContent = dynamicReservationId;
-        // document.getElementById('shareReservationButton').dataset.reservationId = dynamicReservationId;
     </script>
 </body>
 </html>

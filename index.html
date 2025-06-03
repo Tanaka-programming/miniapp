@@ -3,101 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIFF getFriendship Demo</title>
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <title>LIFF Friendship Demo</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        #status { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
-        .error { color: red; }
-        .success { color: green; }
+        #errorMessage { color: red; }
+        #friendshipStatus { margin-top: 15px; font-weight: bold; }
+        button { padding: 10px 15px; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>LIFF getFriendship() Demo</h1>
+    <h1>LINEミニアプリ 友だち確認デモ</h1>
 
-    <div id="userInfo">
-        <p>ユーザーID: <span id="userId">読み込み中...</span></p>
-    </div>
-
-    <button id="checkFriendshipButton" style="display:none;">友だちか確認する</button>
-
-    <div id="friendshipStatus">
-        <p>友だち状態: <span id="friendStatusText">未確認</span></p>
-    </div>
-
-    <div id="errorMessage" class="error"></div>
-    <div id="liffError" class="error"></div>
+    <p id="profileInfo">Loading user info...</p>
+    <button id="checkFriendshipButton">友だちか確認する</button>
+    <p id="friendshipStatus"></p>
+    <p id="errorMessage"></p>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const userIdElement = document.getElementById('userId');
-            const friendStatusTextElement = document.getElementById('friendStatusText');
-            const checkFriendshipButton = document.getElementById('checkFriendshipButton');
-            const errorMessageElement = document.getElementById('errorMessage');
-            const liffErrorElement = document.getElementById('liffError');
+        // 自身のLIFF IDに置き換えてください
+        const MY_LIFF_ID = "2006882853-9aNwJ63V";
+        // 自身のLINE公式アカウントのID（@から始まるもの）に置き換えてください
+        const MY_BOT_ID = "@800dhxkb"; // 例: "@abcdefg"
 
-            // 自身のLIFF IDに置き換えてください
-            const LIFF_ID = '2006882853-9aNwJ63V';
-
-            initializeLiff();
-
-            async function initializeLiff() {
-                try {
-                    await liff.init({ liffId: LIFF_ID });
-                    liffErrorElement.textContent = ''; // 初期化成功時はエラーメッセージをクリア
-
-                    if (!liff.isLoggedIn()) {
-                        userIdElement.textContent = '未ログイン';
-                        friendStatusTextElement.textContent = 'ログインしてください';
-                        // 必要であればログインを促す
-                        // liff.login();
-                        return;
-                    }
-
-                    const profile = await liff.getProfile();
-                    userIdElement.textContent = profile.userId;
-                    checkFriendshipButton.style.display = 'block';
-
-                } catch (err) {
-                    console.error('LIFF Initialization failed', err);
-                    userIdElement.textContent = 'LIFF初期化エラー';
-                    liffErrorElement.textContent = 'LIFFの初期化に失敗しました: ' + JSON.stringify(err);
-                }
-            }
-
-            checkFriendshipButton.addEventListener('click', async function() {
+        async function initializeLiff() {
+            try {
+                await liff.init({ liffId: MY_LIFF_ID });
                 if (!liff.isLoggedIn()) {
-                    friendStatusTextElement.textContent = 'まずLINEにログインしてください。';
+                    document.getElementById("profileInfo").innerText = "LINEにログインしていません。";
+                    // 必要であればここで liff.login() を呼び出し、ログインを強制することも可能
+                    // ただし、ボタン押下まで待つ設計も一般的
+                } else {
+                    const profile = await liff.getProfile();
+                    document.getElementById("profileInfo").innerText =
+                        `ようこそ、${profile.displayName} さん！`;
+                }
+            } catch (error) {
+                document.getElementById("profileInfo").innerText = "LIFF初期化またはプロフィール取得に失敗しました。";
+                document.getElementById("errorMessage").innerText = `エラー: ${error.message}`;
+                console.error("LIFF Initialization or Profile failed", error);
+            }
+        }
+
+        async function checkFriendship() {
+            const statusElement = document.getElementById("friendshipStatus");
+            const errorElement = document.getElementById("errorMessage");
+            statusElement.innerText = ""; // 前回の結果をクリア
+            errorElement.innerText = ""; // 前回のエラーをクリア
+
+            try {
+                if (!liff.isLoggedIn()) {
+                    statusElement.innerText = "まずLINEにログインしてください。";
+                    // ログインを促すか、自動でログイン画面に遷移させる
+                    // liff.login({ redirectUri: window.location.href }); // ログイン後、現在のページに戻る
+                    // 上記を実行すると、ログイン後にページがリロードされ、再度ボタンを押す必要がある場合があります。
+                    // よりシームレスにするには、ログイン後のコールバックで友だち確認処理を再度呼び出す等の工夫が必要です。
+                    // ここではシンプルにメッセージ表示に留めます。
+                    alert("LINEにログインしてください。ログイン後、再度ボタンを押してください。");
+                    liff.login();
                     return;
                 }
 
-                errorMessageElement.textContent = ''; // 前のエラーメッセージをクリア
-                friendStatusTextElement.textContent = '確認中...';
+                const friendship = await liff.getFriendship();
 
-                try {
-                    // liff.getFriendship() を呼び出し
-                    const friendship = await liff.getFriendship();
-                    console.log(friendship); // { friendFlag: true } または { friendFlag: false }
-
-                    if (friendship.friendFlag) {
-                        friendStatusTextElement.textContent = 'あなたはLINE公式アカウントの友だちです！ 🎉';
-                        friendStatusTextElement.className = 'success';
-                        // ここで友だち限定のコンテンツを表示するなどの処理を実装
-                    } else {
-                        friendStatusTextElement.textContent = 'あなたはまだLINE公式アカウントの友だちではありません。';
-                        friendStatusTextElement.className = 'error';
-                        // ここで友だち追加を促すメッセージやボタンを表示するなどの処理を実装
-                    }
-                } catch (err) {
-                    console.error('Error getting friendship status:', err);
-                    friendStatusTextElement.textContent = '友だち状態の取得に失敗しました。';
-                    friendStatusTextElement.className = 'error';
-                    errorMessageElement.textContent = 'エラー: ' + err.message + (err.code ? ` (コード: ${err.code})` : '');
-                    // エラーコードに応じて詳細なハンドリングが可能
-                    // 例: err.code === 'LISDK_PERMISSION_DENIED' の場合はパーミッション不足
+                if (friendship.friendFlag) {
+                    statusElement.innerText = "あなたは公式アカウントの友だちです！ありがとうございます！";
+                } else {
+                    statusElement.innerText = "あなたはまだ公式アカウントの友だちではありません。";
+                    // 友だち追加画面に遷移
+                    const addFriendUrl = `https://line.me/R/ti/p/${MY_BOT_ID}`;
+                    // liff.openWindow({ url: addFriendUrl, external: true }); // 外部ブラウザで開く場合
+                    window.location.href = addFriendUrl; // LINEアプリ内のブラウザ遷移を期待
                 }
-            });
-        });
+
+            } catch (error) {
+                errorElement.innerText = `友だち確認中にエラーが発生しました: ${error.message}`;
+                console.error("Error checking friendship:", error);
+            }
+        }
+
+        // ページ読み込み時にLIFFを初期化
+        window.onload = async () => {
+            await initializeLiff();
+            // ボタンにイベントリスナーを設定
+            document.getElementById("checkFriendshipButton").addEventListener("click", checkFriendship);
+        };
     </script>
 </body>
 </html>

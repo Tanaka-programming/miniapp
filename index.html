@@ -1,113 +1,102 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>LINE遷移デモ</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIFF getFriendship Demo</title>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px; 
-            text-align: center; 
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-width: 500px;
-            margin: 40px auto;
-        }
-        h1 {
-            color: #00B900; /* LINE Green */
-        }
-        p {
-            font-size: 1em;
-            line-height: 1.6;
-            margin-bottom: 25px;
-        }
-        button { 
-            background-color: #00C300; /* LINE Green */
-            color: white;
-            border: none;
-            padding: 12px 25px; 
-            font-size: 1.1em; 
-            font-weight: bold;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #009A00; /* Darker LINE Green */
-        }
-        .note {
-            font-size: 0.9em;
-            color: #777;
-            margin-top: 30px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
+        body { font-family: sans-serif; padding: 20px; }
+        #status { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>LINEアプリ遷移デモ</h1>
-        <p>このボタンをクリックすると、LINEアプリが起動し、<br>あらかじめ指定されたLIFFアプリが開きます。</p>
-        
-        <button id="openLiffInLineAppButton">LINEでLIFFアプリを開く</button>
+    <h1>LIFF getFriendship() Demo</h1>
 
-        <div class="note">
-            <p><strong>【重要】</strong> このデモを正しく動作させるには、以下のJavaScriptコード内の <code>YOUR_LIFF_ID_HERE</code> を、あなたがLINE Developersコンソールで作成した有効なLIFF IDに置き換える必要があります。</p>
-            <p>LINEアプリがインストールされていないデバイスでは、このボタンは期待通りに動作しない場合があります。</p>
-        </div>
+    <div id="userInfo">
+        <p>ユーザーID: <span id="userId">読み込み中...</span></p>
     </div>
+
+    <button id="checkFriendshipButton" style="display:none;">友だちか確認する</button>
+
+    <div id="friendshipStatus">
+        <p>友だち状態: <span id="friendStatusText">未確認</span></p>
+    </div>
+
+    <div id="errorMessage" class="error"></div>
+    <div id="liffError" class="error"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const openLiffButton = document.getElementById('openLiffInLineAppButton');
+            const userIdElement = document.getElementById('userId');
+            const friendStatusTextElement = document.getElementById('friendStatusText');
+            const checkFriendshipButton = document.getElementById('checkFriendshipButton');
+            const errorMessageElement = document.getElementById('errorMessage');
+            const liffErrorElement = document.getElementById('liffError');
 
-            if (openLiffButton) {
-                openLiffButton.addEventListener('click', function() {
-                    // ==================================================================
-                    // ▼▼▼【重要】ご自身のLIFF IDに置き換えてください ▼▼▼
-                    // 例: "1234567890-Abcdefgh" (LINE Developersコンソールで取得)
-                    const liffId = "2006882853-9aNwJ63V"; 
-                    // ▲▲▲【重要】ご自身のLIFF IDに置き換えてください ▲▲▲
-                    // ==================================================================
+            // 自身のLIFF IDに置き換えてください
+            const LIFF_ID = '2006882853-9aNwJ63V';
 
-                    // LIFF IDが設定されていない場合は、ユーザーに通知
-                    if (liffId === "2006882853-9aNwJ63V" || !liffId.trim()) {
-                        alert("デモを試す前に、HTMLファイル内のJavaScriptコードにある 'liffId' の値を、ご自身の有効なLIFF IDに置き換えてください。");
-                        console.warn("LIFF IDが設定されていません。'2006882853-9aNwJ63V' を実際のIDに置き換えてください。");
+            initializeLiff();
+
+            async function initializeLiff() {
+                try {
+                    await liff.init({ liffId: LIFF_ID });
+                    liffErrorElement.textContent = ''; // 初期化成功時はエラーメッセージをクリア
+
+                    if (!liff.isLoggedIn()) {
+                        userIdElement.textContent = '未ログイン';
+                        friendStatusTextElement.textContent = 'ログインしてください';
+                        // 必要であればログインを促す
+                        // liff.login();
                         return;
                     }
 
-                    // (オプション) LINEアプリ内ブラウザで開くLIFFアプリに引き継ぎたい情報があれば、
-                    // クエリパラメータとして準備します。
-                    const params = new URLSearchParams();
-                    params.set("source", "external_demo_button");
-                    params.set("timestamp", new Date().getTime().toString());
+                    const profile = await liff.getProfile();
+                    userIdElement.textContent = profile.userId;
+                    checkFriendshipButton.style.display = 'block';
 
-                    // LINE URLスキームを組み立てます
-                    // 基本形: line://liff/{liffId}
-                    // クエリパラメータを付与する場合: line://liff/{liffId}?{クエリ文字列}
-                    let lineUrl = `line://liff/${liffId}`;
-                    
-                    if (params.toString()) {
-                        lineUrl += `?${params.toString()}`;
-                    }
-                    
-                    console.log("生成されたLINE URLスキーム:", lineUrl);
-                    
-                    // 組み立てたLINE URLスキームに現在のウィンドウを遷移させます。
-                    // これにより、OSはLINEアプリの起動を試みます。
-                    window.location.href = lineUrl;
-                });
-            } else {
-                console.error("ボタン要素 (#openLiffInLineAppButton) が見つかりません。HTMLのid属性を確認してください。");
+                } catch (err) {
+                    console.error('LIFF Initialization failed', err);
+                    userIdElement.textContent = 'LIFF初期化エラー';
+                    liffErrorElement.textContent = 'LIFFの初期化に失敗しました: ' + JSON.stringify(err);
+                }
             }
+
+            checkFriendshipButton.addEventListener('click', async function() {
+                if (!liff.isLoggedIn()) {
+                    friendStatusTextElement.textContent = 'まずLINEにログインしてください。';
+                    return;
+                }
+
+                errorMessageElement.textContent = ''; // 前のエラーメッセージをクリア
+                friendStatusTextElement.textContent = '確認中...';
+
+                try {
+                    // liff.getFriendship() を呼び出し
+                    const friendship = await liff.getFriendship();
+                    console.log(friendship); // { friendFlag: true } または { friendFlag: false }
+
+                    if (friendship.friendFlag) {
+                        friendStatusTextElement.textContent = 'あなたはLINE公式アカウントの友だちです！ 🎉';
+                        friendStatusTextElement.className = 'success';
+                        // ここで友だち限定のコンテンツを表示するなどの処理を実装
+                    } else {
+                        friendStatusTextElement.textContent = 'あなたはまだLINE公式アカウントの友だちではありません。';
+                        friendStatusTextElement.className = 'error';
+                        // ここで友だち追加を促すメッセージやボタンを表示するなどの処理を実装
+                    }
+                } catch (err) {
+                    console.error('Error getting friendship status:', err);
+                    friendStatusTextElement.textContent = '友だち状態の取得に失敗しました。';
+                    friendStatusTextElement.className = 'error';
+                    errorMessageElement.textContent = 'エラー: ' + err.message + (err.code ? ` (コード: ${err.code})` : '');
+                    // エラーコードに応じて詳細なハンドリングが可能
+                    // 例: err.code === 'LISDK_PERMISSION_DENIED' の場合はパーミッション不足
+                }
+            });
         });
     </script>
 </body>

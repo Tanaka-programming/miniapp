@@ -9,14 +9,14 @@
         body { font-family: sans-serif; padding: 20px; }
         #errorMessage { color: red; }
         #friendshipStatus { margin-top: 15px; font-weight: bold; }
-        button { padding: 10px 15px; font-size: 16px; cursor: pointer; }
+        /* ボタン用のスタイルは不要になるので削除またはコメントアウトしてもOK */
+        /* button { padding: 10px 15px; font-size: 16px; cursor: pointer; } */
     </style>
 </head>
 <body>
     <h1>LINEミニアプリ 友だち確認デモ</h1>
 
     <p id="profileInfo">Loading user info...</p>
-    <button id="checkFriendshipButton">友だちか確認する</button>
     <p id="friendshipStatus"></p>
     <p id="errorMessage"></p>
 
@@ -24,23 +24,33 @@
         // 自身のLIFF IDに置き換えてください
         const MY_LIFF_ID = "2006882853-9aNwJ63V";
         // 自身のLINE公式アカウントのID（@から始まるもの）に置き換えてください
-        const MY_BOT_ID = "@800dhxkb"; // 例: "@abcdefg"
+        const MY_BOT_ID = "@800dhxkb";
 
         async function initializeLiff() {
+            const profileInfoElement = document.getElementById("profileInfo");
+            const errorElement = document.getElementById("errorMessage");
             try {
                 await liff.init({ liffId: MY_LIFF_ID });
+
                 if (!liff.isLoggedIn()) {
-                    document.getElementById("profileInfo").innerText = "LINEにログインしていません。";
-                    // 必要であればここで liff.login() を呼び出し、ログインを強制することも可能
-                    // ただし、ボタン押下まで待つ設計も一般的
-                } else {
-                    const profile = await liff.getProfile();
-                    document.getElementById("profileInfo").innerText =
-                        `ようこそ、${profile.displayName} さん！`;
+                    profileInfoElement.innerText = "LINEにログインしていません。サービスの利用にはログインが必要です。";
+                    // アクセス時点で未ログインの場合、自動的にログインを促す場合は以下のコメントを解除
+                    // profileInfoElement.innerText = "LINEにログインしています...";
+                    // liff.login({ redirectUri: window.location.href }); // ログイン後、現在のページにリダイレクト
+                    // liff.login()を呼び出すと処理がここで中断し、ログイン後にページが再読み込みされます。
+                    return; // liff.login() を呼ぶ場合は、以降の処理はリダイレクト後に行われるためreturn
                 }
+
+                // ログイン済みの場合
+                const profile = await liff.getProfile();
+                profileInfoElement.innerText = `ようこそ、${profile.displayName} さん！友だち状態を確認します...`;
+
+                // プロフィール取得後、自動的に友だち確認処理を実行
+                await checkFriendship();
+
             } catch (error) {
-                document.getElementById("profileInfo").innerText = "LIFF初期化またはプロフィール取得に失敗しました。";
-                document.getElementById("errorMessage").innerText = `エラー: ${error.message}`;
+                profileInfoElement.innerText = "LIFF初期化またはプロフィール取得に失敗しました。";
+                errorElement.innerText = `エラー: ${error.message}`;
                 console.error("LIFF Initialization or Profile failed", error);
             }
         }
@@ -51,42 +61,42 @@
             statusElement.innerText = ""; // 前回の結果をクリア
             errorElement.innerText = ""; // 前回のエラーをクリア
 
-            try {
-                if (!liff.isLoggedIn()) {
-                    statusElement.innerText = "まずLINEにログインしてください。";
-                    // ログインを促すか、自動でログイン画面に遷移させる
-                    // liff.login({ redirectUri: window.location.href }); // ログイン後、現在のページに戻る
-                    // 上記を実行すると、ログイン後にページがリロードされ、再度ボタンを押す必要がある場合があります。
-                    // よりシームレスにするには、ログイン後のコールバックで友だち確認処理を再度呼び出す等の工夫が必要です。
-                    // ここではシンプルにメッセージ表示に留めます。
-                    alert("LINEにログインしてください。ログイン後、再度ボタンを押してください。");
-                    liff.login();
-                    return;
-                }
+            // この関数が呼ばれる時点でログイン済みのはずなので、
+            // if (!liff.isLoggedIn()) のチェックは基本的には不要になるが、念のため残しても良い。
+            // ただし、initializeLiffでliff.login()を呼ぶ設計にした場合は、
+            // ログイン後のリダイレクトで再度initializeLiffから処理が始まるため、ここでのログインチェックはほぼ不要。
+            if (!liff.isLoggedIn()) {
+                 // このケースは、initializeLiffでliff.login()を呼ばず、
+                 // かつ何らかの理由でログインセッションが切れた場合に発生しうるが稀。
+                statusElement.innerText = "再度ログインが必要です。ページをリロードするか、アプリを再起動してください。";
+                return;
+            }
 
+            try {
                 const friendship = await liff.getFriendship();
 
                 if (friendship.friendFlag) {
-                    statusElement.innerText = "あなたは公式アカウントの友だちです！ありがとうございます！";
+                    statusElement.innerText = "あなたは公式アカウントの友だちです！ミニアプリをご利用いただけます。";
+                    // ここで友だち向けのミニアプリのメインコンテンツを表示するなどの処理を行う
                 } else {
-                    statusElement.innerText = "あなたはまだ公式アカウントの友だちではありません。";
+                    statusElement.innerText = "あなたはまだ公式アカウントの友だちではありません。友だち追加ページに移動します。";
                     // 友だち追加画面に遷移
                     const addFriendUrl = `https://line.me/R/ti/p/${MY_BOT_ID}`;
-                    // liff.openWindow({ url: addFriendUrl, external: true }); // 外部ブラウザで開く場合
                     window.location.href = addFriendUrl; // LINEアプリ内のブラウザ遷移を期待
                 }
 
             } catch (error) {
                 errorElement.innerText = `友だち確認中にエラーが発生しました: ${error.message}`;
+                statusElement.innerText = "友だち状態の確認に失敗しました。しばらくしてから再度お試しください。";
                 console.error("Error checking friendship:", error);
             }
         }
 
-        // ページ読み込み時にLIFFを初期化
+        // ページ読み込み時にLIFFを初期化し、自動的に処理を開始
         window.onload = async () => {
             await initializeLiff();
-            // ボタンにイベントリスナーを設定
-            document.getElementById("checkFriendshipButton").addEventListener("click", checkFriendship);
+            // ボタンへのイベントリスナー設定は不要になるので削除
+            // document.getElementById("checkFriendshipButton").addEventListener("click", checkFriendship);
         };
     </script>
 </body>

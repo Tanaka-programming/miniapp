@@ -80,9 +80,13 @@
                     // ここで友だち向けのミニアプリのメインコンテンツを表示するなどの処理を行う
                 } else {
                     statusElement.innerText = "あなたはまだ公式アカウントの友だちではありません。友だち追加ページに移動します。";
-                    // 友だち追加画面に遷移
+                // 友だちでない場合の遷移処理
                     const addFriendUrl = `https://line.me/R/ti/p/${MY_BOT_ID}`;
-                    window.location.href = addFriendUrl; // LINEアプリ内のブラウザ遷移を期待
+                    liff.openWindow({
+                        url: addFriendUrl,
+                        external: false // falseまたは未指定でLINE内ブラウザ、trueで外部ブラウザ
+                                       // 友だち追加URLは通常LINEアプリ内で処理される
+                    });
                 }
 
             } catch (error) {
